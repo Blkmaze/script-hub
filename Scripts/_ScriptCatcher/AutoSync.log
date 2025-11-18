@@ -108,3 +108,50 @@ Pulling latest changes...
 Already up to date.
 Syncing repository to USB...
 Syncing USB Scripts to repository...
+Checking for changes...
+warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will be replaced by CRLF the next time Git tou
+ches it
+[main d2915ef] AutoSync: 2025-11-18 12:20:37
+ 2 files changed, 110 insertions(+)
+ create mode 100644 Scripts/Automation/ScriptHub-AutoSync.ps1
+Enumerating objects: 12, done.
+Counting objects: 100% (12/12), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (7/7), 2.36 KiB | 2.36 MiB/s, done.
+Total 7 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 3 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/Blkmaze/script-hub.git
+To https://github.com/blkmaze/script-hub.git
+   7f32abd..d2915ef  main -> main
+Changes synced to GitHub.
+**********************
+PowerShell transcript end
+End time: 20251118122038
+**********************
+**********************
+PowerShell transcript start
+Start time: 20251118122058
+Username: MAZE\willi
+RunAs User: MAZE\willi
+Configuration Name: 
+Machine: MAZE (Microsoft Windows NT 10.0.26220.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 8896
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26220
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+=== ScriptHub AutoSync ===
+Pulling latest changes...
+Already up to date.
+Syncing repository to USB...
+Syncing USB Scripts to repository...
