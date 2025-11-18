@@ -9241,3 +9241,8 @@ Line |
      | spelling of the name, or if a path was included, verify that the path is correct and try again.
 
 Syncing USB Scripts to repository...
+Checking for changes...
+warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will be replaced by CRLF the next time Git tou
+ches it
+[main e5de627] AutoSync: 2025-11-18 12:26:43
+ 1 file changed, 59 insertions(+)
