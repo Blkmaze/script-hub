@@ -23,3 +23,26 @@ jobs:
       shell: pwsh
       run: |
         Invoke-ScriptAnalyzer -Path ./Scripts -Recurse -Severity Warning,Error
+
+  test:
+    runs-on: windows-latest
+    needs: lint
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Run all PowerShell scripts
+      shell: pwsh
+      run: |
+        Get-ChildItem -Path ./Scripts -Filter *.ps1 -Recurse | ForEach-Object {
+          Write-Host "=== Running $($_.FullName) ==="
+          try {
+            & $_.FullName
+            Write-Host "✅ Success: $($_.Name)"
+          }
+          catch {
+            Write-Error "❌ Failed: $($_.Name) - $($_.Exception.Message)"
+            exit 1
+          }
+        }
