@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MAZE Script Library</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0b1220;
+            color: #e5e7eb;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #38bdf8;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .card {
+            background: #020617;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #1f2937;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            background: #1d4ed8;
+            color: #e5e7eb;
+            margin-bottom: 8px;
+        }
+        a {
+            color: #a5b4fc;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        code {
+            background: #020617;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .path {
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 6px;
+        }
+        footer {
+            margin-top: 32px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <h1>MAZE Script Library</h1>
+    <p>Location: <code>G:\Scripts</code></p>
+
+    <h2>Disk Tools</h2>
+    <div class="grid">
+        <div class="card">
+            <div class="tag">USB / Disk Repair</div>
+            <h3>Rebuild-USB.ps1</h3>
+            <p>Completely wipes and rebuilds a USB drive (or other disk) using MBR and formats it as NTFS/FAT32. Use when a drive shows 0 bytes, RAW, or corrupted partitions.</p>
+            <div class="path">Path: <code>G:\Scripts\DiskTools\Rebuild-USB.ps1</code></div>
+            <p style="margin-top:8px;">
+                Run in PowerShell:<br>
+                <code>G:\Scripts\DiskTools\Rebuild-USB.ps1 -DiskNumber 3 -FileSystem NTFS</code>
+            </p>
+        </div>
+
+        <!-- You can add more disk tools here as you create them -->
+    </div>
+
+    <h2>Network Scripts</h2>
+    <div class="grid">
+        <div class="card">
+            <div class="tag">Placeholder</div>
+            <h3>Coming Soon</h3>
+            <p>Add your SMB/NAS/Firewall helper scripts in <code>G:\Scripts\Network</code> and document them here.</p>
+        </div>
+    </div>
+
+    <h2>Windows / System</h2>
+    <div class="grid">
+        <div class="card">
+            <div class="tag">System</div>
+            <h3>Script Library Layout</h3>
+            <p>Your categories live under:</p>
+            <ul>
+                <li><code>G:\Scripts\DiskTools</code></li>
+                <li><code>G:\Scripts\Network</code></li>
+                <li><code>G:\Scripts\Windows</code></li>
+                <li><code>G:\Scripts\Docker</code></li>
+                <li><code>G:\Scripts\NAS</code></li>
+                <li><code>G:\Scripts\Automation</code></li>
+                <li><code>G:\Scripts\System</code></li>
+            </ul>
+            <p>Each folder holds category-specific .ps1 tools.</p>
+        </div>
+    </div>
+
+    <footer>
+        MAZE Script Library – Portable toolbox for JT (DevOps / SecOps / Sysadmin).<br>
+        Load in browser: open <code>G:\Scripts\index.html</code>
+    </footer>
+</body>
+</html>
