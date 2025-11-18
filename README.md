@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Blkmaze ScriptHub
 
 > A modular PowerShell toolkit for system administrators, automation engineers, and DevOps specialists.
@@ -20,3 +21,6 @@
 
 ---
 "@ | Out-File "D:\Dev\script-hub\README.md" -Encoding UTF8
+=======
+# script-hub
+>>>>>>> 3dc90418d7644ddea241ff609a6a4f4dc9c5c9f2
