@@ -8048,3 +8048,25 @@ Line |
      | spelling of the name, or if a path was included, verify that the path is correct and try again.
 
 Syncing USB Scripts to repository...
+Checking for changes...
+warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will be replaced by CRLF the next time Git tou
+ches it
+[main 4e39a30] AutoSync: 2025-11-18 12:25:58
+ 1 file changed, 44 insertions(+)
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (10/10), done.
+Writing objects: 100% (10/10), 1.01 KiB | 1.01 MiB/s, done.
+Total 10 (delta 9), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (9/9), completed with 4 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/Blkmaze/script-hub.git
+To https://github.com/blkmaze/script-hub.git
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at 4e39a3082cf48f71def47efe6e6ee01474c4524c but
+ expected f8ef8e45db9b9d0279173ea4b059efb46ea40c73)
+error: failed to push some refs to 'https://github.com/blkmaze/script-hub.git'
+Changes synced to GitHub.
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+=== ScriptHub AutoSync ===
+Pulling latest changes...
