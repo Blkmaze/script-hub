@@ -25,7 +25,8 @@ git pull --no-edit
 
 # Sync repo → USB Scripts
 Write-Host "Syncing repository to USB..." -ForegroundColor Yellow
-robocopy "$RepoPath\Scripts" $ScriptsSrc /E /XO /R:0 /W:0 | Out-Null
+robocopy "$RepoPath\Scripts" $ScriptsSrc /E /XO /R:0 /WTest-Path "G:\Scripts\Automation\ScriptHub-AutoSync.ps1"
+:0 | Out-Null
 
 # Sync USB → repo
 Write-Host "Syncing USB Scripts to repository..." -ForegroundColor Yellow
@@ -44,5 +45,7 @@ if ($changes) {
 } else {
     Write-Host "No changes to sync." -ForegroundColor DarkYellow
 }
+
+& "G:\Scripts\Automation\ScriptHub-AutoSync.ps1"
 
 Stop-Transcript
