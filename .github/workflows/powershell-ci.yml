@@ -17,6 +17,7 @@ jobs:
     - name: Install PSScriptAnalyzer
       shell: pwsh
       run: |
+        Set-PSRepository -Name "PSGallery" -InstallationPolicy Trusted
         Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
 
     - name: Run PSScriptAnalyzer
@@ -35,14 +36,15 @@ jobs:
     - name: Run all PowerShell scripts
       shell: pwsh
       run: |
-        Get-ChildItem -Path ./Scripts -Filter *.ps1 -Recurse | ForEach-Object {
-          Write-Host "=== Running $($_.FullName) ==="
+        $scripts = Get-ChildItem -Path ./Scripts -Filter *.ps1 -Recurse
+        foreach ($script in $scripts) {
+          Write-Host "=== Running $($script.FullName) ==="
           try {
-            & $_.FullName
-            Write-Host "✅ Success: $($_.Name)"
+            & $script.FullName
+            Write-Host "✅ Success: $($script.Name)"
           }
           catch {
-            Write-Error "❌ Failed: $($_.Name) - $($_.Exception.Message)"
+            Write-Error "❌ Failed: $($script.Name) - $($_.Exception.Message)"
             exit 1
           }
         }
