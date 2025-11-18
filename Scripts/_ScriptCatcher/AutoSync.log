@@ -46,3 +46,65 @@ PS G:\ScriptHubRepo> robocopy "$RepoPath\Scripts" $ScriptsSrc /E /XO /R:0 /W:0 |
 PS G:\ScriptHubRepo> # Copy updated scripts from USB → repo
 PS G:\ScriptHubRepo> Write-Host "Syncing USB → repo..." -ForegroundColor Yellow
 Syncing USB → repo...
+PS G:\ScriptHubRepo> robocopy $ScriptsSrc "$RepoPath\Scripts" /E /XO /R:0 /W:0 | Out-Null
+PS G:\ScriptHubRepo> # Commit changes back to GitHub
+PS G:\ScriptHubRepo> Write-Host "Checking for changes..." -ForegroundColor Yellow
+Checking for changes...
+PS G:\ScriptHubRepo> cd $RepoPath
+PS G:\ScriptHubRepo> git add .
+warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will be replaced by CRLF the next time Git tou
+ches it
+PS G:\ScriptHubRepo> $changes = git status --porcelain
+PS G:\ScriptHubRepo> if ($changes) {
+    $msg = "AutoSync: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+    git commit -m "$msg"
+    git push
+    Write-Host "Changes synced to GitHub." -ForegroundColor Green
+} else {
+    Write-Host "No changes to sync." -ForegroundColor DarkYellow
+}
+[main 7f32abd] AutoSync: 2025-11-18 11:48:36
+ 1 file changed, 48 insertions(+)
+ create mode 100644 Scripts/_ScriptCatcher/AutoSync.log
+Enumerating objects: 8, done.
+Counting objects: 100% (8/8), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 1.23 KiB | 1.23 MiB/s, done.
+Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/Blkmaze/script-hub.git
+To https://github.com/blkmaze/script-hub.git
+   9f276e7..7f32abd  main -> main
+Changes synced to GitHub.
+PS G:\ScriptHubRepo> Stop-Transcript
+**********************
+PowerShell transcript end
+End time: 20251118114838
+**********************
+**********************
+PowerShell transcript start
+Start time: 20251118122037
+Username: MAZE\willi
+RunAs User: MAZE\willi
+Configuration Name: 
+Machine: MAZE (Microsoft Windows NT 10.0.26220.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 8620
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26220
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+=== ScriptHub AutoSync ===
+Pulling latest changes...
+Already up to date.
+Syncing repository to USB...
+Syncing USB Scripts to repository...
