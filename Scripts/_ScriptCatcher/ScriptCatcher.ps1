@@ -1,36 +1,39 @@
 function Register-ScriptRun {
- function Register-ScriptRun {
-    param(
-        [string]$ScriptPath
-    )
+    param([string]$ScriptPath)
 
-    $logFile = "G:\Scripts\_ScriptCatcher\ScriptLog.csv"
+    $logRoot = "D:\Dev\script-hub\_ScriptCatcher"
+    $logFile = "$logRoot\ScriptLog.csv"
 
-    # Ensure log file exists with headers
     if (!(Test-Path $logFile)) {
         "Date,Time,Script,Category" | Out-File $logFile -Encoding UTF8
     }
 
-    # Auto-detect category based on folder name
     $category = switch -Regex ($ScriptPath) {
+        "Windows"     { "Windows"; break }
         "Recovery"    { "Recovery"; break }
-        "Performance" { "Performance"; break }
-        "DiskTools"   { "DiskTools"; break }
-        "Network"     { "Network"; break }
-        "Automation"  { "Automation"; break }
-        "NAS"         { "NAS"; break }
         "Docker"      { "Docker"; break }
         "Security"    { "Security"; break }
-        "Windows"     { "Windows"; break }
+        "Network"     { "Network"; break }
         default       { "Unknown" }
     }
 
     $date = Get-Date -Format "yyyy-MM-dd"
     $time = Get-Date -Format "HH:mm:ss"
-
     "$date,$time,$ScriptPath,$category" | Out-File $logFile -Append -Encoding UTF8
+
+    if ($category -ne "Unknown") {
+        $destFolder = "D:\Dev\script-hub\Scripts\$category"
+        if (!(Test-Path $destFolder)) { 
+            New-Item -Path $destFolder -ItemType Directory | Out-Null 
+        }
+        $fileName = Split-Path $ScriptPath -Leaf
+        $destPath = Join-Path $destFolder $fileName
+        Move-Item $ScriptPath $destPath -Force
+    }
 }
 
-# Example: manually log a script run
-# Register-ScriptRun -ScriptPath "G:\Scripts\Windows\ClearTemp.ps1"
-
+function Show-ScriptSummary {
+    $logFile = "D:\Dev\script-hub\_ScriptCatcher\ScriptLog.csv"
+    if (!(Test-Path $logFile)) { Write-Host "No log file found."; return }
+    Import-Csv $logFile | Group-Object Category | Select-Object Name,Count | Format-Table -AutoSize
+}
