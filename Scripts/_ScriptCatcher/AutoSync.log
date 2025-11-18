@@ -1,0 +1,48 @@
+**********************
+PowerShell transcript start
+Start time: 20251118114832
+Username: MAZE\willi
+RunAs User: MAZE\willi
+Configuration Name: 
+Machine: MAZE (Microsoft Windows NT 10.0.26220.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll
+Process ID: 23028
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26220
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+PS D:\Dev\script-hub> Write-Host "=== ScriptHub AutoSync ===" -ForegroundColor Cyan
+=== ScriptHub AutoSync ===
+PS D:\Dev\script-hub> # Clone repo if missing
+PS D:\Dev\script-hub> if (!(Test-Path $RepoPath)) {
+    Write-Host "Cloning ScriptHub repository..." -ForegroundColor Yellow
+    git clone $GitURL $RepoPath
+}
+Cloning ScriptHub repository...
+Cloning into 'G:\ScriptHubRepo'...
+remote: Enumerating objects: 67, done.
+remote: Counting objects: 100% (67/67), done.
+remote: Compressing objects: 100% (60/60), done.
+remote: Total 67 (delta 3), reused 67 (delta 3), pack-reused 0 (from 0)
+Receiving objects: 100% (67/67), 20.54 KiB | 4.11 MiB/s, done.
+Resolving deltas: 100% (3/3), done.
+PS D:\Dev\script-hub> # Pull latest changes
+PS D:\Dev\script-hub> Write-Host "Pulling latest changes..." -ForegroundColor Yellow
+Pulling latest changes...
+PS D:\Dev\script-hub> cd $RepoPath
+PS G:\ScriptHubRepo> git pull --no-edit
+Already up to date.
+PS G:\ScriptHubRepo> # Copy updated scripts from repo → USB
+PS G:\ScriptHubRepo> Write-Host "Syncing repo → USB..." -ForegroundColor Yellow
+Syncing repo → USB...
+PS G:\ScriptHubRepo> robocopy "$RepoPath\Scripts" $ScriptsSrc /E /XO /R:0 /W:0 | Out-Null
+PS G:\ScriptHubRepo> # Copy updated scripts from USB → repo
+PS G:\ScriptHubRepo> Write-Host "Syncing USB → repo..." -ForegroundColor Yellow
+Syncing USB → repo...
