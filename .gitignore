@@ -1,0 +1,6 @@
+# Ignore logs
+_ScriptCatcher/ScriptLog.csv
+
+# Ignore temp files
+*.tmp
+*.bak
