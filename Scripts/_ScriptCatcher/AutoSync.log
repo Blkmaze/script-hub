@@ -25331,3 +25331,105 @@ Changes synced to GitHub.
 Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
 === ScriptHub AutoSync ===
 Pulling latest changes...
+Already up to date.
+Syncing repository to USB...
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy for Windows
+-------------------------------------------------------------------------------
+
+  Started : Tuesday, November 18, 2025 7:04:20 PM
+   Source - G:\ScriptHubRepo\Scripts\
+     Dest - G:\Scripts\
+
+    Files :
+  Options : /S /E /DCOPY:DA /COPY:DAT /XO /R:0 /W:30
+
+------------------------------------------------------------------------------
+
+ERROR : Invalid Parameter #6 : "/WTest-Path"
+
+       Simple Usage :: ROBOCOPY source destination /MIR
+
+             source :: Source Directory (drive:\path or \\server\share\path).
+        destination :: Destination Dir  (drive:\path or \\server\share\path).
+               /MIR :: Mirror a complete directory tree.
+
+    For more usage information run ROBOCOPY /?
+
+
+****  /MIR can DELETE files as well as copy them !
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the
+     | spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+Syncing USB Scripts to repository...
+Checking for changes...
+fatal: Unable to create 'G:/ScriptHubRepo/.git/index.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   Scripts/_ScriptCatcher/AutoSync.log
+
+no changes added to commit (use "git add" and/or "git commit -a")
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 539 bytes | 539.00 KiB/s, done.
+Total 5 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/Blkmaze/script-hub.git
+To https://github.com/blkmaze/script-hub.git
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at 067173c96077b223ab598c659c86138a789071da but
+ expected 888ca0f92db9b8720b0e5ed0887aa38680e2d2a7)
+error: failed to push some refs to 'https://github.com/blkmaze/script-hub.git'
+Changes synced to GitHub.
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+=== ScriptHub AutoSync ===
+Pulling latest changes...
+Already up to date.
+Syncing repository to USB...
+
+       Simple Usage :: ROBOCOPY source destination /MIR
+
+             source :: Source Directory (drive:\path or \\server\share\path).
+        destination :: Destination Dir  (drive:\path or \\server\share\path).
+               /MIR :: Mirror a complete directory tree.
+
+    For more usage information run ROBOCOPY /?
+
+
+****  /MIR can DELETE files as well as copy them !
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the
+     | spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+Syncing USB Scripts to repository...
