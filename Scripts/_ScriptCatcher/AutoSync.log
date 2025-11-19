@@ -22502,3 +22502,64 @@ warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will b
 ches it
 [main aa036fc] AutoSync: 2025-11-18 19:02:20
  1 file changed, 68 insertions(+)
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (10/10), done.
+Writing objects: 100% (10/10), 935 bytes | 935.00 KiB/s, done.
+Total 10 (delta 9), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (9/9), completed with 4 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/Blkmaze/script-hub.git
+To https://github.com/blkmaze/script-hub.git
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at aa036fc229026e674078421a781751805734d338 but
+ expected b4e95b97f59fe78edef5bac0cc54a61c612b133a)
+error: failed to push some refs to 'https://github.com/blkmaze/script-hub.git'
+Changes synced to GitHub.
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+=== ScriptHub AutoSync ===
+Pulling latest changes...
+warning: fetch updated the current branch head.
+fast-forwarding your working tree from
+commit aa036fc229026e674078421a781751805734d338.
+Already up to date.
+Syncing repository to USB...
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy for Windows
+-------------------------------------------------------------------------------
+
+  Started : Tuesday, November 18, 2025 7:02:23 PM
+   Source - G:\ScriptHubRepo\Scripts\
+     Dest - G:\Scripts\
+
+    Files :
+  Options : /S /E /DCOPY:DA /COPY:DAT /XO /R:0 /W:30
+
+------------------------------------------------------------------------------
+
+ERROR : Invalid Parameter #6 : "/WTest-Path"
+
+       Simple Usage :: ROBOCOPY source destination /MIR
+
+             source :: Source Directory (drive:\path or \\server\share\path).
+        destination :: Destination Dir  (drive:\path or \\server\share\path).
+               /MIR :: Mirror a complete directory tree.
+
+    For more usage information run ROBOCOPY /?
+
+
+****  /MIR can DELETE files as well as copy them !
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the
+     | spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+Syncing USB Scripts to repository...
