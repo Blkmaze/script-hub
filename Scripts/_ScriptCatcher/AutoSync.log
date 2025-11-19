@@ -21477,3 +21477,20 @@ Line |
      | spelling of the name, or if a path was included, verify that the path is correct and try again.
 
 Syncing USB Scripts to repository...
+Checking for changes...
+warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will be replaced by CRLF the next time Git tou
+ches it
+[main 8dec625] AutoSync: 2025-11-18 19:01:39
+ 1 file changed, 61 insertions(+)
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 534 bytes | 534.00 KiB/s, done.
+Total 5 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/Blkmaze/script-hub.git
+To https://github.com/blkmaze/script-hub.git
+   6dfba27..8dec625  main -> main
+Changes synced to GitHub.
