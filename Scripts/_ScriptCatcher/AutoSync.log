@@ -24104,3 +24104,73 @@ warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will b
 ches it
 [main 8545ca4] AutoSync: 2025-11-18 19:03:19
  1 file changed, 68 insertions(+)
+Enumerating objects: 14, done.
+Counting objects: 100% (14/14), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (10/10), done.
+Writing objects: 100% (10/10), 930 bytes | 930.00 KiB/s, done.
+Total 10 (delta 9), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (9/9), completed with 4 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/Blkmaze/script-hub.git
+To https://github.com/blkmaze/script-hub.git
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at 8545ca443311706b6cb93cc84ff4c6814bfdfc11 but
+ expected 822b42c99fd8408e1088e9c1fc89d86b77b0b63a)
+error: failed to push some refs to 'https://github.com/blkmaze/script-hub.git'
+Changes synced to GitHub.
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+=== ScriptHub AutoSync ===
+Pulling latest changes...
+warning: fetch updated the current branch head.
+fast-forwarding your working tree from
+commit 8545ca443311706b6cb93cc84ff4c6814bfdfc11.
+error: Your local changes to the following files would be overwritten by merge:
+        Scripts/_ScriptCatcher/AutoSync.log
+Please commit your changes or stash them before you merge.
+Aborting
+fatal: Cannot fast-forward your working tree.
+After making sure that you saved anything precious from
+$ git diff 8545ca443311706b6cb93cc84ff4c6814bfdfc11
+output, run
+$ git reset --hard
+to recover.
+Syncing repository to USB...
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy for Windows
+-------------------------------------------------------------------------------
+
+  Started : Tuesday, November 18, 2025 7:03:21 PM
+   Source - G:\ScriptHubRepo\Scripts\
+     Dest - G:\Scripts\
+
+    Files :
+  Options : /S /E /DCOPY:DA /COPY:DAT /XO /R:0 /W:30
+
+------------------------------------------------------------------------------
+
+ERROR : Invalid Parameter #6 : "/WTest-Path"
+
+       Simple Usage :: ROBOCOPY source destination /MIR
+
+             source :: Source Directory (drive:\path or \\server\share\path).
+        destination :: Destination Dir  (drive:\path or \\server\share\path).
+               /MIR :: Mirror a complete directory tree.
+
+    For more usage information run ROBOCOPY /?
+
+
+****  /MIR can DELETE files as well as copy them !
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the
+     | spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+Syncing USB Scripts to repository...
