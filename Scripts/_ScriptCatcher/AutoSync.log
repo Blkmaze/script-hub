@@ -24372,3 +24372,55 @@ Line |
      | spelling of the name, or if a path was included, verify that the path is correct and try again.
 
 Syncing USB Scripts to repository...
+Checking for changes...
+warning: in the working copy of 'Scripts/_ScriptCatcher/AutoSync.log', LF will be replaced by CRLF the next time Git tou
+ches it
+[main f853258] AutoSync: 2025-11-18 19:03:30
+ 1 file changed, 68 insertions(+)
+Everything up-to-date
+Changes synced to GitHub.
+Transcript started, output file is G:\Scripts\_ScriptCatcher\AutoSync.log
+=== ScriptHub AutoSync ===
+Pulling latest changes...
+Already up to date.
+Syncing repository to USB...
+
+-------------------------------------------------------------------------------
+   ROBOCOPY     ::     Robust File Copy for Windows
+-------------------------------------------------------------------------------
+
+  Started : Tuesday, November 18, 2025 7:03:31 PM
+   Source - G:\ScriptHubRepo\Scripts\
+     Dest - G:\Scripts\
+
+    Files :
+  Options : /S /E /DCOPY:DA /COPY:DAT /XO /R:0 /W:30
+
+------------------------------------------------------------------------------
+
+ERROR : Invalid Parameter #6 : "/WTest-Path"
+
+       Simple Usage :: ROBOCOPY source destination /MIR
+
+             source :: Source Directory (drive:\path or \\server\share\path).
+        destination :: Destination Dir  (drive:\path or \\server\share\path).
+               /MIR :: Mirror a complete directory tree.
+
+    For more usage information run ROBOCOPY /?
+
+
+****  /MIR can DELETE files as well as copy them !
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+:0: G:\Scripts\Automation\ScriptHub-AutoSync.ps1:29
+Line |
+  29 |  :0 | Out-Null
+     |  ~~
+     | The term ':0' is not recognized as a name of a cmdlet, function, script file, or executable program. Check the
+     | spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+Syncing USB Scripts to repository...
+Checking for changes...
