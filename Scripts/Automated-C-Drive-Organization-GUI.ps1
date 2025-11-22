@@ -1,91 +1,147 @@
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
-    GUI – Automated C: Drive Organization & Mini PC Swap Prep
-
+    Automated C: Drive Organization with Progress Bar
+    
 .DESCRIPTION
-    WinForms GUI wrapper around your C: drive move script.
-    - Choose Drive or NAS
-    - Configure destination
-    - Optional toggles: AutoConfirm, SkipBrowser, SkipDocker, DryRun
-    - Scan / plan phase
-    - Run migration with logging and stats
+    This script automatically moves important folders from C: to H: drive or NAS
+    with real-time progress bars and status updates.
+    
+.PARAMETER DestinationType
+    "Drive" or "NAS" - Where to move files
+    
+.PARAMETER DestinationDrive
+    Drive letter for local destination (e.g., "H:")
+    
+.PARAMETER NASPath
+    UNC path to NAS (e.g., "\\192.168.1.100\Backup")
+    
+.PARAMETER AutoConfirm
+    Skip confirmation prompts
+    
+.EXAMPLE
+    .\Automated-C-Drive-Organization-GUI.ps1 -DestinationType "Drive" -DestinationDrive "H:"
 #>
 
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+param(
+    [Parameter(Mandatory=$true)]
+    [ValidateSet("Drive", "NAS")]
+    [string]$DestinationType,
+    
+    [Parameter(Mandatory=$false)]
+    [string]$DestinationDrive = "H:",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$NASPath = "",
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$AutoConfirm,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$SkipBrowser,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$SkipDocker,
+    
+    [Parameter(Mandatory=$false)]
+    [switch]$DryRun
+)
 
-# ----------------------------
-# GLOBALS
-# ----------------------------
+# ============================================================================
+# PROGRESS BAR FUNCTIONS
+# ============================================================================
+
+function Show-ProgressBar {
+    param(
+        [int]$Current,
+        [int]$Total,
+        [string]$Activity,
+        [string]$Status = "Processing",
+        [int]$Id = 0
+    )
+    
+    $percent = [math]::Round(($Current / $Total) * 100, 0)
+    
+    Write-Progress -Id $Id `
+                   -Activity $Activity `
+                   -Status "$Status ($Current of $Total) - $percent%" `
+                   -PercentComplete $percent
+}
+
+function Show-SubProgress {
+    param(
+        [int]$Current,
+        [int]$Total,
+        [string]$Activity,
+        [string]$Status = "Processing"
+    )
+    
+    $percent = [math]::Round(($Current / $Total) * 100, 0)
+    
+    Write-Progress -Id 1 `
+                   -ParentId 0 `
+                   -Activity $Activity `
+                   -Status "$Status - $percent%" `
+                   -PercentComplete $percent
+}
+
+function Write-StatusLine {
+    param(
+        [string]$Icon,
+        [string]$Text,
+        [string]$Color = "White",
+        [switch]$NoNewLine
+    )
+    
+    if ($NoNewLine) {
+        Write-Host "$Icon $Text" -ForegroundColor $Color -NoNewline
+    } else {
+        Write-Host "$Icon $Text" -ForegroundColor $Color
+    }
+}
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
 $script:colors = @{
-    Header   = "Cyan"
-    Success  = "Green"
-    Warning  = "Yellow"
-    Error    = "Red"
-    Info     = "White"
+    Header = "Cyan"
+    Success = "Green"
+    Warning = "Yellow"
+    Error = "Red"
+    Info = "White"
     Progress = "Magenta"
 }
 
 $script:stats = @{
-    TotalFiles  = 0
-    TotalSize   = 0
+    TotalFiles = 0
+    TotalSize = 0
     MoveSuccess = 0
-    MoveFailed  = 0
-    Folders     = @()
+    MoveFailed = 0
+    Folders = @()
 }
 
-$script:foldersToMove = @()
-$script:destinationBase = $null
-$script:destinationType = "Drive"
-$script:destinationDrive = "H:"
-$script:NASPath = ""
-$script:AutoConfirm = $false
-$script:SkipBrowser = $false
-$script:SkipDocker = $false
-$script:DryRun = $false
-$script:logFile = $null
+function Write-Header {
+    param([string]$Text)
+    Write-Host "`n╔══════════════════════════════════════════════════════════════╗" -ForegroundColor $colors.Header
+    Write-Host "║  $($Text.PadRight(60)) ║" -ForegroundColor $colors.Header
+    Write-Host "╚══════════════════════════════════════════════════════════════╝`n" -ForegroundColor $colors.Header
+}
 
-# Helper: write to on-screen log + host
-function Write-Log {
-    param(
-        [string]$Message,
-        [string]$Level = "Info"
-    )
-    $timestamp = (Get-Date).ToString("HH:mm:ss")
-    $pref = @{
-        Info    = "[*]"
-        Success = "[+]"
-        Warning = "[!]"
-        Error   = "[X]"
-        Progress= "[>]"
-        Header  = "[=]"
-    }[$Level]
-
-    $line = "$timestamp $pref $Message"
-
-    # Write to host
-    switch ($Level) {
-        "Success" { Write-Host $line -ForegroundColor Green }
-        "Warning" { Write-Host $line -ForegroundColor Yellow }
-        "Error"   { Write-Host $line -ForegroundColor Red }
-        "Progress"{ Write-Host $line -ForegroundColor Magenta }
-        "Header"  { Write-Host $line -ForegroundColor Cyan }
-        default   { Write-Host $line -ForegroundColor White }
-    }
-
-    # Write to GUI log if available
-    if ($script:LogTextBox -and -not $script:LogTextBox.IsDisposed) {
-        $script:LogTextBox.AppendText($line + [Environment]::NewLine)
-        $script:LogTextBox.ScrollToCaret()
-    }
+function Write-Step {
+    param([string]$Text, [string]$Color = "Cyan")
+    Write-Host "`n═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+    Write-Host "▶ $Text" -ForegroundColor $Color
+    Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 function Get-FolderSize {
     param([string]$Path)
     try {
-        $size = (Get-ChildItem $Path -Recurse -File -ErrorAction SilentlyContinue |
-            Measure-Object -Property Length -Sum).Sum
+        $size = (Get-ChildItem $Path -Recurse -File -ErrorAction SilentlyContinue | 
+                 Measure-Object -Property Length -Sum).Sum
         return [math]::Round($size/1GB, 2)
     } catch {
         return 0
@@ -106,535 +162,580 @@ function Test-PathExists {
     return (Test-Path $Path -ErrorAction SilentlyContinue)
 }
 
-function Move-FolderSafe {
+function Move-FolderWithProgress {
     param(
         [string]$Source,
         [string]$Destination,
         [string]$FolderName,
-        [bool]$CreateSymlink = $true
+        [bool]$CreateSymlink = $true,
+        [int]$FolderIndex = 1,
+        [int]$TotalFolders = 1
     )
-
-    Write-Log "Processing: $FolderName" "Info"
-    Write-Log " Source: $Source" "Info"
-    Write-Log " Dest:   $Destination" "Info"
-
+    
+    Write-Host ""
+    Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║  Processing Folder $FolderIndex of $TotalFolders" -ForegroundColor Cyan -NoNewline
+    Write-Host (" " * (60 - "  Processing Folder $FolderIndex of $TotalFolders".Length)) -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
+    
+    Write-StatusLine "📦" "Folder: $FolderName" "Cyan"
+    Write-StatusLine "📂" "Source: $Source" "Gray"
+    Write-StatusLine "📁" "Destination: $Destination" "Gray"
+    Write-Host ""
+    
     if (!(Test-PathExists $Source)) {
-        Write-Log " Source not found - skipping" "Warning"
+        Write-StatusLine "⚠️" "Source not found - skipping" $colors.Warning
         return $false
     }
-
-    Write-Log " Calculating size..." "Progress"
+    
+    # Calculate size with progress
+    Write-StatusLine "⏳" "Calculating size..." $colors.Progress -NoNewLine
+    
+    Show-ProgressBar -Current $FolderIndex -Total $TotalFolders `
+                     -Activity "Overall Progress: $FolderName" `
+                     -Status "Calculating size" -Id 0
+    
     $sizeGB = Get-FolderSize $Source
     $fileCount = Get-FileCount $Source
-
-    Write-Log " Size: $sizeGB GB | Files: $fileCount" "Info"
-
+    
+    Write-Host " Done!" -ForegroundColor $colors.Success
+    
+    Write-StatusLine "💾" "Size: $sizeGB GB" $colors.Info
+    Write-StatusLine "📄" "Files: $fileCount" $colors.Info
+    Write-Host ""
+    
     if ($sizeGB -eq 0) {
-        Write-Log " Folder empty - skipping" "Warning"
+        Write-StatusLine "⚠️" "Folder is empty - skipping" $colors.Warning
+        Write-Progress -Id 0 -Activity "Overall Progress" -Completed
+        Write-Progress -Id 1 -Activity "Sub Progress" -Completed
         return $false
     }
-
+    
     $script:stats.TotalFiles += $fileCount
     $script:stats.TotalSize += $sizeGB
-
-    if ($script:DryRun) {
-        Write-Log "[DRY RUN] Would copy to $Destination" "Progress"
+    
+    if ($DryRun) {
+        Write-StatusLine "🔍" "[DRY RUN] Would copy to $Destination" $colors.Progress
+        Write-Progress -Id 0 -Activity "Overall Progress" -Completed
+        Write-Progress -Id 1 -Activity "Sub Progress" -Completed
         return $true
     }
-
+    
     try {
-        # Ensure destination directory exists
-        if (!(Test-PathExists $Destination)) {
+        # Show copy progress
+        Write-StatusLine "📂" "Copying files..." $colors.Progress
+        Write-Host ""
+        
+        # Create destination directory
+        if (!(Test-Path $Destination)) {
             New-Item -ItemType Directory -Path $Destination -Force | Out-Null
         }
-
-        Write-Log " Copying files with robocopy..." "Progress"
+        
+        # Use robocopy with progress tracking
+        $robocopyLog = "$env:TEMP\robocopy_$([guid]::NewGuid()).log"
+        
         $robocopyArgs = @(
             $Source,
             $Destination,
-            "/E",
-            "/COPYALL",
-            "/R:3",
-            "/W:5",
-            "/MT:8",
-            "/NP",
-            "/NFL",
-            "/NDL",
-            "/NJH",
-            "/NJS"
+            "/E",           # Copy subdirectories including empty
+            "/COPYALL",     # Copy all file info
+            "/R:3",         # Retry 3 times
+            "/W:5",         # Wait 5 seconds
+            "/MT:8",        # Multi-threaded
+            "/V",           # Verbose
+            "/LOG:$robocopyLog"
         )
-
-        $result = Start-Process -FilePath "robocopy.exe" -ArgumentList $robocopyArgs -Wait -PassThru -NoNewWindow -RedirectStandardOutput "NUL"
-
-        if ($result.ExitCode -le 7) {
-            Write-Log " Copy completed" "Success"
-
-            $destFiles = Get-FileCount $Destination
-            if ($destFiles -eq $fileCount) {
-                Write-Log " Verified file count: $destFiles" "Success"
-            } else {
-                Write-Log " File count mismatch: Src=$fileCount Dest=$destFiles" "Warning"
+        
+        # Start robocopy in background
+        $robocopyJob = Start-Job -ScriptBlock {
+            param($Args)
+            $result = Start-Process -FilePath "robocopy.exe" -ArgumentList $Args -Wait -PassThru -NoNewWindow
+            return $result.ExitCode
+        } -ArgumentList (,$robocopyArgs)
+        
+        # Monitor progress
+        $lastSize = 0
+        $startTime = Get-Date
+        
+        while ($robocopyJob.State -eq 'Running') {
+            Start-Sleep -Milliseconds 500
+            
+            if (Test-Path $Destination) {
+                try {
+                    $currentSize = (Get-ChildItem $Destination -Recurse -File -ErrorAction SilentlyContinue | 
+                                   Measure-Object -Property Length -Sum).Sum
+                    $currentFiles = (Get-ChildItem $Destination -Recurse -File -ErrorAction SilentlyContinue | 
+                                    Measure-Object).Count
+                    
+                    if ($currentFiles -gt 0) {
+                        Show-ProgressBar -Current $FolderIndex -Total $TotalFolders `
+                                       -Activity "Overall Progress: $FolderName" `
+                                       -Status "Copying files" -Id 0
+                        
+                        Show-SubProgress -Current $currentFiles -Total $fileCount `
+                                       -Activity "Copying $FolderName" `
+                                       -Status "$currentFiles of $fileCount files copied"
+                        
+                        # Calculate speed
+                        $elapsed = ((Get-Date) - $startTime).TotalSeconds
+                        if ($elapsed -gt 0) {
+                            $speed = [math]::Round($currentSize / $elapsed / 1MB, 2)
+                            $currentSizeGB = [math]::Round($currentSize / 1GB, 2)
+                            Write-Host "`r  💨 Speed: $speed MB/s  |  Copied: $currentSizeGB GB  |  Files: $currentFiles/$fileCount" -NoNewline -ForegroundColor Gray
+                        }
+                    }
+                } catch {
+                    # Ignore errors during progress monitoring
+                }
             }
-
+        }
+        
+        Write-Host "`r" + (" " * 120) + "`r" -NoNewline  # Clear progress line
+        
+        # Get result
+        $exitCode = Receive-Job $robocopyJob
+        Remove-Job $robocopyJob
+        
+        # Clean up log
+        if (Test-Path $robocopyLog) {
+            Remove-Item $robocopyLog -Force
+        }
+        
+        # Robocopy exit codes 0-7 are success
+        if ($exitCode -le 7) {
+            Write-StatusLine "✓" "Copy completed successfully" $colors.Success
+            
+            # Verify
+            Write-StatusLine "🔍" "Verifying files..." $colors.Progress -NoNewLine
+            $destFiles = Get-FileCount $Destination
+            
+            if ($destFiles -eq $fileCount) {
+                Write-Host " ✓ Verified: $destFiles files" -ForegroundColor $colors.Success
+            } else {
+                Write-Host " ⚠️ File count mismatch: Source=$fileCount, Dest=$destFiles" -ForegroundColor $colors.Warning
+            }
+            
+            # Create symlink
             if ($CreateSymlink) {
-                Write-Log " Creating symbolic link..." "Progress"
+                Write-StatusLine "🔗" "Creating symbolic link..." $colors.Progress -NoNewLine
+                
                 $backupPath = "$Source.original"
-
                 if (Test-PathExists $backupPath) {
                     Remove-Item $backupPath -Recurse -Force
                 }
-
+                
                 Rename-Item -Path $Source -NewName "$Source.original" -Force
                 New-Item -ItemType SymbolicLink -Path $Source -Target $Destination -Force | Out-Null
-
-                Write-Log " Symlink created" "Success"
-                Write-Log " Original backed up to: $backupPath" "Info"
+                
+                Write-Host " ✓ Symlink created" -ForegroundColor $colors.Success
+                Write-StatusLine "📁" "Original backed up to: $backupPath" "Gray"
             }
-
+            
             $script:stats.MoveSuccess++
             $script:stats.Folders += $FolderName
+            
+            Write-Progress -Id 0 -Activity "Overall Progress" -Completed
+            Write-Progress -Id 1 -Activity "Sub Progress" -Completed
+            
+            Write-Host ""
             return $true
         } else {
-            throw "Robocopy failed with exit code: $($result.ExitCode)"
+            throw "Robocopy failed with exit code: $exitCode"
         }
     } catch {
-        Write-Log " ERROR: $($_.Exception.Message)" "Error"
+        Write-Host "`r" + (" " * 120) + "`r" -NoNewline  # Clear progress line
+        Write-StatusLine "❌" "ERROR: $($_.Exception.Message)" $colors.Error
         $script:stats.MoveFailed++
+        
+        Write-Progress -Id 0 -Activity "Overall Progress" -Completed
+        Write-Progress -Id 1 -Activity "Sub Progress" -Completed
+        
+        Write-Host ""
         return $false
     }
 }
 
-function Discover-FoldersToMove {
-    $script:foldersToMove = @()
-    $userName = $env:USERNAME
+# ============================================================================
+# MAIN SCRIPT
+# ============================================================================
 
-    Write-Log "PHASE 1: DISCOVERY & ANALYSIS" "Header"
+Write-Header "AUTOMATED C: DRIVE ORGANIZATION"
 
-    # Drives overview
-    $drives = Get-PSDrive -PSProvider FileSystem | Where-Object {$_.Used -ne $null} | Select-Object Name,
-        @{Name='Used(GB)';Expression={[math]::Round($_.Used/1GB,2)}},
-        @{Name='Free(GB)';Expression={[math]::Round($_.Free/1GB,2)}},
-        @{Name='Total(GB)';Expression={[math]::Round(($_.Used + $_.Free)/1GB,2)}},
-        @{Name='% Free';Expression={[math]::Round(($_.Free/($_.Used + $_.Free))*100,1)}}
+# Validate parameters
+if ($DestinationType -eq "Drive" -and [string]::IsNullOrEmpty($DestinationDrive)) {
+    Write-Host "❌ ERROR: DestinationDrive required when using Drive type!" -ForegroundColor $colors.Error
+    exit 1
+}
 
-    foreach ($d in $drives) {
-        Write-Log ("Drive {0}: Used={1}GB Free={2}GB Total={3}GB ({4}% Free)" -f $d.Name,$d.'Used(GB)',$d.'Free(GB)',$d.'Total(GB)',$d.'% Free') "Info"
+if ($DestinationType -eq "NAS" -and [string]::IsNullOrEmpty($NASPath)) {
+    Write-Host "❌ ERROR: NASPath required when using NAS type!" -ForegroundColor $colors.Error
+    exit 1
+}
+
+# Setup logging
+$timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
+$logFile = "C:\CDrive_Organization_Log_$timestamp.txt"
+Start-Transcript -Path $logFile
+
+Write-Host "📝 Log file: $logFile`n" -ForegroundColor Gray
+
+$userName = $env:USERNAME
+Write-Host "👤 User: $userName`n" -ForegroundColor $colors.Info
+
+# ============================================================================
+# PHASE 1: DISCOVERY
+# ============================================================================
+
+Write-Step "PHASE 1: DISCOVERY & ANALYSIS" $colors.Header
+
+Write-Host "📊 Checking available drives...`n" -ForegroundColor $colors.Info
+
+$drives = Get-PSDrive -PSProvider FileSystem | Where-Object {$_.Used -ne $null} | Select-Object Name, 
+    @{Name='Used(GB)';Expression={[math]::Round($_.Used/1GB,2)}}, 
+    @{Name='Free(GB)';Expression={[math]::Round($_.Free/1GB,2)}}, 
+    @{Name='Total(GB)';Expression={[math]::Round(($_.Used + $_.Free)/1GB,2)}},
+    @{Name='% Free';Expression={[math]::Round(($_.Free/($_.Used + $_.Free))*100,1)}}
+
+$drives | Format-Table -AutoSize
+
+# Check destination
+if ($DestinationType -eq "Drive") {
+    $destDriveLetter = $DestinationDrive.TrimEnd(':')
+    $destDrive = $drives | Where-Object {$_.Name -eq $destDriveLetter}
+    
+    if (!$destDrive) {
+        Write-Host "❌ ERROR: Drive $DestinationDrive not found!" -ForegroundColor $colors.Error
+        Stop-Transcript
+        exit 1
     }
+    
+    Write-Host "🎯 Destination: $DestinationDrive" -ForegroundColor $colors.Success
+    Write-Host "   Free Space: $($destDrive.'Free(GB)') GB" -ForegroundColor $colors.Info
+    Write-Host ""
+    
+    $destinationBase = $DestinationDrive.TrimEnd('\')
+} else {
+    Write-Host "🎯 Destination: NAS" -ForegroundColor $colors.Success
+    Write-Host "   Path: $NASPath" -ForegroundColor $colors.Info
+    
+    Write-Host "`n🔌 Testing NAS connection..." -ForegroundColor $colors.Progress
+    if (!(Test-PathExists $NASPath)) {
+        Write-Host "❌ ERROR: Cannot access NAS: $NASPath" -ForegroundColor $colors.Error
+        Stop-Transcript
+        exit 1
+    }
+    Write-Host "✓ NAS connection successful`n" -ForegroundColor $colors.Success
+    
+    $destinationBase = $NASPath.TrimEnd('\')
+}
 
-    # Destination base
-    if ($script:destinationType -eq "Drive") {
-        $destDriveLetter = $script:destinationDrive.TrimEnd(':')
-        $destDrive = $drives | Where-Object { $_.Name -eq $destDriveLetter }
-        if (-not $destDrive) {
-            throw "Destination drive $($script:destinationDrive) not found!"
+# ============================================================================
+# PHASE 2: IDENTIFY FOLDERS
+# ============================================================================
+
+Write-Step "PHASE 2: IDENTIFYING FOLDERS TO MOVE" $colors.Header
+
+$foldersToMove = @()
+
+# GitHub Repos
+$githubPaths = @(
+    "C:\Users\$userName\Documents\GitHub",
+    "C:\Users\$userName\source\repos",
+    "C:\Users\$userName\repos",
+    "C:\Development",
+    "C:\Projects",
+    "C:\GitHub"
+)
+
+foreach ($path in $githubPaths) {
+    if (Test-PathExists $path) {
+        $foldersToMove += @{
+            Name = "GitHub-Repos"
+            Source = $path
+            Destination = "$destinationBase\GitHub-Repos"
+            Priority = 1
+            CreateSymlink = $true
         }
-        $script:destinationBase = $script:destinationDrive.TrimEnd('\')
-        Write-Log "Destination: Drive $($script:destinationDrive) (Free: $($destDrive.'Free(GB)') GB)" "Success"
+        Write-Host "✓ Found: GitHub repos at $path" -ForegroundColor $colors.Success
+        break
+    }
+}
+
+# Docker Configs
+if (!$SkipDocker) {
+    $dockerPaths = @(
+        "C:\ProgramData\Docker",
+        "C:\Users\$userName\.docker",
+        "C:\docker"
+    )
+    
+    foreach ($path in $dockerPaths) {
+        if (Test-PathExists $path) {
+            $foldersToMove += @{
+                Name = "Docker-Configs"
+                Source = $path
+                Destination = "$destinationBase\Docker-Configs"
+                Priority = 1
+                CreateSymlink = $true
+            }
+            Write-Host "✓ Found: Docker configs at $path" -ForegroundColor $colors.Success
+        }
+    }
+}
+
+# Custom Scripts
+$scriptPaths = @(
+    "C:\Scripts",
+    "C:\Users\$userName\Scripts"
+)
+
+foreach ($path in $scriptPaths) {
+    if (Test-PathExists $path) {
+        $foldersToMove += @{
+            Name = "Scripts"
+            Source = $path
+            Destination = "$destinationBase\Scripts"
+            Priority = 2
+            CreateSymlink = $true
+        }
+        Write-Host "✓ Found: Scripts at $path" -ForegroundColor $colors.Success
+    }
+}
+
+# Browser Data
+if (!$SkipBrowser) {
+    $browserPaths = @(
+        @{Name="Chrome"; Path="$env:LOCALAPPDATA\Google\Chrome\User Data"},
+        @{Name="Edge"; Path="$env:LOCALAPPDATA\Microsoft\Edge\User Data"}
+    )
+    
+    foreach ($browser in $browserPaths) {
+        if (Test-PathExists $browser.Path) {
+            $foldersToMove += @{
+                Name = "Browser-$($browser.Name)"
+                Source = $browser.Path
+                Destination = "$destinationBase\Backups\Browser-$($browser.Name)"
+                Priority = 2
+                CreateSymlink = $false
+            }
+            Write-Host "✓ Found: $($browser.Name) data" -ForegroundColor $colors.Success
+        }
+    }
+}
+
+# SSH Keys & Configs
+$configPaths = @(
+    "C:\Users\$userName\.ssh",
+    "C:\Users\$userName\.gitconfig"
+)
+
+$hasConfigs = $false
+foreach ($path in $configPaths) {
+    if (Test-PathExists $path) {
+        $hasConfigs = $true
+        break
+    }
+}
+
+if ($hasConfigs) {
+    $tempBundle = "C:\Temp\Config-Bundle-$timestamp"
+    New-Item -ItemType Directory -Path $tempBundle -Force | Out-Null
+    
+    foreach ($path in $configPaths) {
+        if (Test-PathExists $path) {
+            $itemName = Split-Path $path -Leaf
+            Copy-Item $path -Destination "$tempBundle\$itemName" -Recurse -Force
+            Write-Host "✓ Added to config bundle: $itemName" -ForegroundColor $colors.Success
+        }
+    }
+    
+    if (Test-PathExists $PROFILE) {
+        Copy-Item $PROFILE -Destination "$tempBundle\PowerShell-Profile.ps1" -Force
+        Write-Host "✓ Added to config bundle: PowerShell Profile" -ForegroundColor $colors.Success
+    }
+    
+    $foldersToMove += @{
+        Name = "SSH-and-Configs"
+        Source = $tempBundle
+        Destination = "$destinationBase\Backups\Configs"
+        Priority = 2
+        CreateSymlink = $false
+    }
+}
+
+# Development Projects
+$devPaths = @(
+    "C:\Users\$userName\source",
+    "C:\Users\$userName\projects"
+)
+
+foreach ($path in $devPaths) {
+    if (Test-PathExists $path) {
+        $folderName = Split-Path $path -Leaf
+        $foldersToMove += @{
+            Name = "Dev-$folderName"
+            Source = $path
+            Destination = "$destinationBase\Development\$folderName"
+            Priority = 1
+            CreateSymlink = $true
+        }
+        Write-Host "✓ Found: Development folder at $path" -ForegroundColor $colors.Success
+    }
+}
+
+Write-Host ""
+
+if ($foldersToMove.Count -eq 0) {
+    Write-Host "⚠️  No folders found to move!" -ForegroundColor $colors.Warning
+    Stop-Transcript
+    exit 0
+}
+
+Write-Host "📋 Found $($foldersToMove.Count) folder(s) to move`n" -ForegroundColor $colors.Info
+
+# ============================================================================
+# PHASE 3: CONFIRMATION
+# ============================================================================
+
+Write-Step "PHASE 3: CONFIRMATION" $colors.Header
+
+Write-Host "The following folders will be moved:`n" -ForegroundColor $colors.Info
+
+foreach ($folder in ($foldersToMove | Sort-Object Priority)) {
+    $size = Get-FolderSize $folder.Source
+    $files = Get-FileCount $folder.Source
+    
+    Write-Host "  📦 $($folder.Name)" -ForegroundColor $colors.Info
+    Write-Host "     From: $($folder.Source)" -ForegroundColor Gray
+    Write-Host "     To: $($folder.Destination)" -ForegroundColor Gray
+    Write-Host "     Size: $size GB  |  Files: $files" -ForegroundColor Gray
+    Write-Host "     Symlink: $(if($folder.CreateSymlink){'Yes'}else{'No'})" -ForegroundColor Gray
+    Write-Host ""
+}
+
+if ($DryRun) {
+    Write-Host "🔍 DRY RUN MODE - No files will be moved`n" -ForegroundColor $colors.Progress
+} elseif (!$AutoConfirm) {
+    Write-Host "❓ Type 'MOVE' to proceed or anything else to cancel: " -ForegroundColor $colors.Warning -NoNewline
+    $confirmation = Read-Host
+    
+    if ($confirmation -ne "MOVE") {
+        Write-Host "`n❌ Operation cancelled by user" -ForegroundColor $colors.Warning
+        Stop-Transcript
+        exit 0
+    }
+}
+
+# ============================================================================
+# PHASE 4: MIGRATION WITH PROGRESS BARS
+# ============================================================================
+
+Write-Step "PHASE 4: MIGRATION" $colors.Header
+
+$startTime = Get-Date
+$sortedFolders = $foldersToMove | Sort-Object Priority
+$totalFolders = $sortedFolders.Count
+$currentFolder = 0
+
+foreach ($folder in $sortedFolders) {
+    $currentFolder++
+    $success = Move-FolderWithProgress -Source $folder.Source `
+                                       -Destination $folder.Destination `
+                                       -FolderName $folder.Name `
+                                       -CreateSymlink $folder.CreateSymlink `
+                                       -FolderIndex $currentFolder `
+                                       -TotalFolders $totalFolders
+}
+
+$endTime = Get-Date
+$duration = $endTime - $startTime
+
+# ============================================================================
+# PHASE 5: VERIFICATION
+# ============================================================================
+
+Write-Step "PHASE 5: POST-MIGRATION VERIFICATION" $colors.Header
+
+Write-Host "🔍 Verifying moved folders...`n" -ForegroundColor $colors.Info
+
+foreach ($folder in $sortedFolders) {
+    if (Test-PathExists $folder.Destination) {
+        $destSize = Get-FolderSize $folder.Destination
+        Write-Host "✓ $($folder.Name): $destSize GB" -ForegroundColor $colors.Success
     } else {
-        if (-not (Test-PathExists $script:NASPath)) {
-            throw "Cannot access NAS path: $($script:NASPath)"
-        }
-        $script:destinationBase = $script:NASPath.TrimEnd('\')
-        Write-Log "Destination: NAS $($script:NASPath)" "Success"
-    }
-
-    Write-Log "PHASE 2: IDENTIFYING FOLDERS TO MOVE" "Header"
-
-    # 1. GitHub / repos
-    $githubPaths = @(
-        "C:\Users\$userName\Documents\GitHub",
-        "C:\Users\$userName\source\repos",
-        "C:\Users\$userName\repos",
-        "C:\Development",
-        "C:\Projects",
-        "C:\GitHub"
-    )
-
-    foreach ($path in $githubPaths) {
-        if (Test-PathExists $path) {
-            $script:foldersToMove += @{
-                Name         = "GitHub-Repos"
-                Source       = $path
-                Destination  = "$($script:destinationBase)\GitHub-Repos"
-                Priority     = 1
-                CreateSymlink= $true
-            }
-            Write-Log "Found GitHub repos at $path" "Success"
-            break
-        }
-    }
-
-    # 2. Docker configs
-    if (-not $script:SkipDocker) {
-        $dockerPaths = @(
-            "C:\ProgramData\Docker",
-            "C:\Users\$userName\.docker",
-            "C:\docker"
-        )
-        foreach ($path in $dockerPaths) {
-            if (Test-PathExists $path) {
-                $script:foldersToMove += @{
-                    Name         = "Docker-Configs"
-                    Source       = $path
-                    Destination  = "$($script:destinationBase)\Docker-Configs"
-                    Priority     = 1
-                    CreateSymlink= $true
-                }
-                Write-Log "Found Docker configs at $path" "Success"
-            }
-        }
-    }
-
-    # 3. Scripts
-    $scriptPaths = @(
-        "C:\Scripts",
-        "C:\Users\$userName\Scripts"
-    )
-    foreach ($path in $scriptPaths) {
-        if (Test-PathExists $path) {
-            $script:foldersToMove += @{
-                Name         = "Scripts"
-                Source       = $path
-                Destination  = "$($script:destinationBase)\Scripts"
-                Priority     = 2
-                CreateSymlink= $true
-            }
-            Write-Log "Found Scripts at $path" "Success"
-        }
-    }
-
-    # 4. Browser data
-    if (-not $script:SkipBrowser) {
-        $browserPaths = @(
-            @{Name="Chrome"; Path="$env:LOCALAPPDATA\Google\Chrome\User Data"},
-            @{Name="Edge";   Path="$env:LOCALAPPDATA\Microsoft\Edge\User Data"}
-        )
-        foreach ($browser in $browserPaths) {
-            if (Test-PathExists $browser.Path) {
-                $script:foldersToMove += @{
-                    Name         = "Browser-$($browser.Name)"
-                    Source       = $browser.Path
-                    Destination  = "$($script:destinationBase)\Backups\Browser-$($browser.Name)"
-                    Priority     = 2
-                    CreateSymlink= $false
-                }
-                Write-Log "Found $($browser.Name) data at $($browser.Path)" "Success"
-            }
-        }
-    }
-
-    # 5. SSH + configs bundle
-    $configPaths = @(
-        "C:\Users\$userName\.ssh",
-        "C:\Users\$userName\.gitconfig"
-    )
-    $hasConfigs = $configPaths | Where-Object { Test-PathExists $_ }
-    if ($hasConfigs) {
-        $timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
-        $tempBundle = "C:\Temp\Config-Bundle-$timestamp"
-        New-Item -ItemType Directory -Path $tempBundle -Force | Out-Null
-
-        foreach ($path in $configPaths) {
-            if (Test-PathExists $path) {
-                $itemName = Split-Path $path -Leaf
-                Copy-Item $path -Destination "$tempBundle\$itemName" -Recurse -Force
-                Write-Log "Added to config bundle: $itemName" "Success"
-            }
-        }
-        if (Test-PathExists $PROFILE) {
-            Copy-Item $PROFILE -Destination "$tempBundle\PowerShell-Profile.ps1" -Force
-            Write-Log "Added PowerShell profile to config bundle" "Success"
-        }
-
-        $script:foldersToMove += @{
-            Name         = "SSH-and-Configs"
-            Source       = $tempBundle
-            Destination  = "$($script:destinationBase)\Backups\Configs"
-            Priority     = 2
-            CreateSymlink= $false
-        }
-    }
-
-    # 6. Development folders
-    $devPaths = @(
-        "C:\Users\$userName\source",
-        "C:\Users\$userName\projects"
-    )
-    foreach ($path in $devPaths) {
-        if (Test-PathExists $path) {
-            $folderName = Split-Path $path -Leaf
-            $script:foldersToMove += @{
-                Name         = "Dev-$folderName"
-                Source       = $path
-                Destination  = "$($script:destinationBase)\Development\$folderName"
-                Priority     = 1
-                CreateSymlink= $true
-            }
-            Write-Log "Found development folder at $path" "Success"
-        }
-    }
-
-    if ($script:foldersToMove.Count -eq 0) {
-        Write-Log "No folders found to move. Either everything is already moved or paths don't exist." "Warning"
-    } else {
-        Write-Log "Found $($script:foldersToMove.Count) folder(s) to move." "Info"
+        Write-Host "❌ $($folder.Name): NOT FOUND!" -ForegroundColor $colors.Error
     }
 }
 
-function Show-Plan {
-    if ($script:foldersToMove.Count -eq 0) {
-        Write-Log "Nothing planned yet. Run 'Scan / Plan' first." "Warning"
-        return
-    }
+Write-Host ""
 
-    Write-Log "PHASE 3: PLAN SUMMARY" "Header"
+# Check symlinks
+Write-Host "🔗 Checking symbolic links...`n" -ForegroundColor $colors.Info
 
-    foreach ($folder in ($script:foldersToMove | Sort-Object Priority)) {
-        $size = Get-FolderSize $folder.Source
-        $files = Get-FileCount $folder.Source
-        Write-Log "[$($folder.Priority)] $($folder.Name)" "Info"
-        Write-Log " From: $($folder.Source)" "Info"
-        Write-Log " To:   $($folder.Destination)" "Info"
-        Write-Log " Size: $size GB | Files: $files | Symlink: $($folder.CreateSymlink)" "Info"
-    }
+$userFolder = "C:\Users\$userName"
+$symlinks = Get-ChildItem $userFolder -Force -ErrorAction SilentlyContinue | 
+    Where-Object {$_.Attributes -band [System.IO.FileAttributes]::ReparsePoint}
 
-    if ($script:DryRun) {
-        Write-Log "DRY RUN mode is ON – no files will be moved when you click 'Run Migration'." "Progress"
+if ($symlinks) {
+    foreach ($link in $symlinks) {
+        Write-Host "✓ $($link.Name) → $($link.Target)" -ForegroundColor $colors.Success
     }
+} else {
+    Write-Host "  No symlinks found in user folder" -ForegroundColor Gray
 }
 
-function Run-Migration {
-    if ($script:foldersToMove.Count -eq 0) {
-        Write-Log "No folders queued. Run Scan / Plan first." "Warning"
-        return
+Write-Host ""
+
+# ============================================================================
+# PHASE 6: FINAL REPORT
+# ============================================================================
+
+Write-Header "MIGRATION COMPLETE"
+
+Write-Host "📊 MIGRATION STATISTICS:" -ForegroundColor $colors.Info
+Write-Host ""
+Write-Host "   Duration: $($duration.ToString('hh\:mm\:ss'))" -ForegroundColor $colors.Info
+Write-Host "   Total Files Processed: $($script:stats.TotalFiles)" -ForegroundColor $colors.Info
+Write-Host "   Total Size Moved: $([math]::Round($script:stats.TotalSize, 2)) GB" -ForegroundColor $colors.Info
+Write-Host "   Successful Moves: $($script:stats.MoveSuccess)" -ForegroundColor $colors.Success
+Write-Host "   Failed Moves: $($script:stats.MoveFailed)" -ForegroundColor $(if($script:stats.MoveFailed -gt 0){$colors.Error}else{$colors.Success})
+Write-Host ""
+
+if ($script:stats.Folders.Count -gt 0) {
+    Write-Host "✅ Successfully moved:" -ForegroundColor $colors.Success
+    foreach ($folder in $script:stats.Folders) {
+        Write-Host "   • $folder" -ForegroundColor $colors.Info
     }
-
-    $timestamp = Get-Date -Format "yyyy-MM-dd_HHmmss"
-    $script:logFile = "C:\CDrive_Organization_Log_$timestamp.txt"
-    Start-Transcript -Path $script:logFile | Out-Null
-    Write-Log "Transcript started: $($script:logFile)" "Info"
-
-    $script:stats.TotalFiles = 0
-    $script:stats.TotalSize = 0
-    $script:stats.MoveSuccess = 0
-    $script:stats.MoveFailed = 0
-    $script:stats.Folders = @()
-
-    Write-Log "PHASE 4: MIGRATION" "Header"
-
-    $startTime = Get-Date
-    $sortedFolders = $script:foldersToMove | Sort-Object Priority
-
-    foreach ($folder in $sortedFolders) {
-        Move-FolderSafe -Source $folder.Source -Destination $folder.Destination `
-            -FolderName $folder.Name -CreateSymlink $folder.CreateSymlink | Out-Null
-    }
-
-    $endTime = Get-Date
-    $duration = $endTime - $startTime
-
-    Write-Log "PHASE 5: VERIFICATION" "Header"
-    foreach ($folder in $sortedFolders) {
-        if (Test-PathExists $folder.Destination) {
-            $destSize = Get-FolderSize $folder.Destination
-            Write-Log "$($folder.Name): $destSize GB at $($folder.Destination)" "Success"
-        } else {
-            Write-Log "$($folder.Name): DESTINATION MISSING!" "Error"
-        }
-    }
-
-    Write-Log "PHASE 6: FINAL REPORT" "Header"
-    Write-Log ("Duration: {0}" -f $duration.ToString("hh\:mm\:ss")) "Info"
-    Write-Log ("Total Files Processed: {0}" -f $script:stats.TotalFiles) "Info"
-    Write-Log ("Total Size Moved: {0} GB" -f [math]::Round($script:stats.TotalSize,2)) "Info"
-    Write-Log ("Successful Moves: {0}" -f $script:stats.MoveSuccess) "Success"
-    Write-Log ("Failed Moves: {0}" -f $script:stats.MoveFailed) `
-        ($(if($script:stats.MoveFailed -gt 0){"Error"}else{"Success"}))
-
-    $cDrive = Get-PSDrive C
-    Write-Log ("C: Used={0}GB Free={1}GB Total={2}GB" -f `
-        [math]::Round($cDrive.Used/1GB,2), `
-        [math]::Round($cDrive.Free/1GB,2), `
-        [math]::Round(($cDrive.Used + $cDrive.Free)/1GB,2)) "Info"
-
-    if ($script:destinationType -eq "Drive") {
-        $destDrive = Get-PSDrive ($script:destinationDrive.TrimEnd(':'))
-        Write-Log ("{0} Used={1}GB Free={2}GB" -f `
-            $script:destinationDrive, `
-            [math]::Round($destDrive.Used/1GB,2), `
-            [math]::Round($destDrive.Free/1GB,2)) "Info"
-    }
-
-    Stop-Transcript | Out-Null
-    Write-Log "Transcript saved: $($script:logFile)" "Info"
-    Write-Log "All done. Ready for mini PC swap once validated." "Success"
+    Write-Host ""
 }
 
-# ----------------------------
-# BUILD GUI
-# ----------------------------
-$form = New-Object System.Windows.Forms.Form
-$form.Text = "Maze – C: Drive Organization GUI"
-$form.Size = New-Object System.Drawing.Size(900, 650)
-$form.StartPosition = "CenterScreen"
+$cDrive = Get-PSDrive C
+Write-Host "💾 C: DRIVE STATUS:" -ForegroundColor $colors.Info
+Write-Host "   Used: $([math]::Round($cDrive.Used/1GB,2)) GB" -ForegroundColor $colors.Info
+Write-Host "   Free: $([math]::Round($cDrive.Free/1GB,2)) GB" -ForegroundColor $colors.Info
+Write-Host ""
 
-# Destination type
-$rbDrive = New-Object System.Windows.Forms.RadioButton
-$rbDrive.Text = "Destination: Drive"
-$rbDrive.Location = New-Object System.Drawing.Point(20,20)
-$rbDrive.Checked = $true
+if ($DestinationType -eq "Drive") {
+    $destDrive = Get-PSDrive ($DestinationDrive.TrimEnd(':'))
+    Write-Host "💾 $DestinationDrive DRIVE STATUS:" -ForegroundColor $colors.Info
+    Write-Host "   Used: $([math]::Round($destDrive.Used/1GB,2)) GB" -ForegroundColor $colors.Info
+    Write-Host "   Free: $([math]::Round($destDrive.Free/1GB,2)) GB" -ForegroundColor $colors.Info
+    Write-Host ""
+}
 
-$rbNAS = New-Object System.Windows.Forms.RadioButton
-$rbNAS.Text = "Destination: NAS"
-$rbNAS.Location = New-Object System.Drawing.Point(20,45)
+Write-Host "📝 Full log saved to: $logFile" -ForegroundColor Gray
+Write-Host ""
 
-# Drive textbox
-$lblDrive = New-Object System.Windows.Forms.Label
-$lblDrive.Text = "Drive Letter (e.g. H:)"
-$lblDrive.Location = New-Object System.Drawing.Point(200, 22)
-$lblDrive.AutoSize = $true
+Write-Host "🎯 NEXT STEPS:" -ForegroundColor $colors.Warning
+Write-Host ""
+Write-Host "1. ✅ Verify symlinks work by accessing files from original locations" -ForegroundColor $colors.Info
+Write-Host "2. ✅ Test applications (Docker, Git, etc.) still work" -ForegroundColor $colors.Info
+Write-Host "3. ✅ Delete .original backup folders once verified" -ForegroundColor $colors.Info
+Write-Host "4. 🚀 Ready to swap mini PC!" -ForegroundColor $colors.Success
+Write-Host ""
 
-$txtDrive = New-Object System.Windows.Forms.TextBox
-$txtDrive.Location = New-Object System.Drawing.Point(340, 18)
-$txtDrive.Size = New-Object System.Drawing.Size(80, 20)
-$txtDrive.Text = "H:"
+Stop-Transcript
 
-# NAS path
-$lblNAS = New-Object System.Windows.Forms.Label
-$lblNAS.Text = "NAS Path (UNC):"
-$lblNAS.Location = New-Object System.Drawing.Point(200, 48)
-$lblNAS.AutoSize = $true
-
-$txtNAS = New-Object System.Windows.Forms.TextBox
-$txtNAS.Location = New-Object System.Drawing.Point(340, 45)
-$txtNAS.Size = New-Object System.Drawing.Size(250, 20)
-$txtNAS.Text = "\\192.168.1.100\Backup"
-
-# Checkboxes
-$chkAutoConfirm = New-Object System.Windows.Forms.CheckBox
-$chkAutoConfirm.Text = "AutoConfirm (skip prompt)"
-$chkAutoConfirm.Location = New-Object System.Drawing.Point(20, 80)
-$chkAutoConfirm.AutoSize = $true
-
-$chkSkipBrowser = New-Object System.Windows.Forms.CheckBox
-$chkSkipBrowser.Text = "Skip Browser Data"
-$chkSkipBrowser.Location = New-Object System.Drawing.Point(220, 80)
-$chkSkipBrowser.AutoSize = $true
-
-$chkSkipDocker = New-Object System.Windows.Forms.CheckBox
-$chkSkipDocker.Text = "Skip Docker Configs"
-$chkSkipDocker.Location = New-Object System.Drawing.Point(390, 80)
-$chkSkipDocker.AutoSize = $true
-
-$chkDryRun = New-Object System.Windows.Forms.CheckBox
-$chkDryRun.Text = "Dry Run (no changes)"
-$chkDryRun.Location = New-Object System.Drawing.Point(580, 80)
-$chkDryRun.AutoSize = $true
-
-# Buttons
-$btnScan = New-Object System.Windows.Forms.Button
-$btnScan.Text = "1. Scan / Plan"
-$btnScan.Location = New-Object System.Drawing.Point(20, 115)
-$btnScan.Size = New-Object System.Drawing.Size(120, 30)
-
-$btnShowPlan = New-Object System.Windows.Forms.Button
-$btnShowPlan.Text = "2. Show Plan Summary"
-$btnShowPlan.Location = New-Object System.Drawing.Point(160, 115)
-$btnShowPlan.Size = New-Object System.Drawing.Size(160, 30)
-
-$btnRun = New-Object System.Windows.Forms.Button
-$btnRun.Text = "3. Run Migration"
-$btnRun.Location = New-Object System.Drawing.Point(340, 115)
-$btnRun.Size = New-Object System.Drawing.Size(140, 30)
-
-# Log TextBox
-$logBox = New-Object System.Windows.Forms.TextBox
-$logBox.Multiline = $true
-$logBox.ScrollBars = "Vertical"
-$logBox.Location = New-Object System.Drawing.Point(20, 160)
-$logBox.Size = New-Object System.Drawing.Size(840, 430)
-$logBox.ReadOnly = $true
-$logBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-
-$script:LogTextBox = $logBox
-
-# Wire up events
-$rbDrive.Add_CheckedChanged({
-    if ($rbDrive.Checked) {
-        $script:destinationType = "Drive"
-    }
-})
-
-$rbNAS.Add_CheckedChanged({
-    if ($rbNAS.Checked) {
-        $script:destinationType = "NAS"
-    }
-})
-
-$btnScan.Add_Click({
-    try {
-        # Read settings from controls
-        $script:destinationDrive = $txtDrive.Text.Trim()
-        $script:NASPath = $txtNAS.Text.Trim()
-        $script:AutoConfirm = $chkAutoConfirm.Checked
-        $script:SkipBrowser = $chkSkipBrowser.Checked
-        $script:SkipDocker = $chkSkipDocker.Checked
-        $script:DryRun = $chkDryRun.Checked
-
-        $logBox.Clear()
-        Write-Log "Starting Scan / Plan phase..." "Header"
-        Discover-FoldersToMove
-        Show-Plan
-    } catch {
-        Write-Log "Scan error: $($_.Exception.Message)" "Error"
-    }
-})
-
-$btnShowPlan.Add_Click({
-    try {
-        Show-Plan
-    } catch {
-        Write-Log "Show Plan error: $($_.Exception.Message)" "Error"
-    }
-})
-
-$btnRun.Add_Click({
-    try {
-        if (-not $script:AutoConfirm -and -not $script:DryRun) {
-            $result = [System.Windows.Forms.MessageBox]::Show(
-                "This will MOVE data and create symlinks. Continue?",
-                "Confirm Migration",
-                [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                [System.Windows.Forms.MessageBoxIcon]::Warning
-            )
-            if ($result -ne [System.Windows.Forms.DialogResult]::Yes) {
-                Write-Log "Migration cancelled by user." "Warning"
-                return
-            }
-        }
-        Run-Migration
-    } catch {
-        Write-Log "Migration error: $($_.Exception.Message)" "Error"
-    }
-})
-
-# Add controls
-$form.Controls.Add($rbDrive)
-$form.Controls.Add($rbNAS)
-$form.Controls.Add($lblDrive)
-$form.Controls.Add($txtDrive)
-$form.Controls.Add($lblNAS)
-$form.Controls.Add($txtNAS)
-$form.Controls.Add($chkAutoConfirm)
-$form.Controls.Add($chkSkipBrowser)
-$form.Controls.Add($chkSkipDocker)
-$form.Controls.Add($chkDryRun)
-$form.Controls.Add($btnScan)
-$form.Controls.Add($btnShowPlan)
-$form.Controls.Add($btnRun)
-$form.Controls.Add($logBox)
-
-[System.Windows.Forms.Application]::EnableVisualStyles()
-$form.Topmost = $true
-$form.Add_Shown({ $form.Activate(); Write-Log "Maze – C: Drive Organization GUI ready." "Header" })
-[System.Windows.Forms.Application]::Run($form)
+Write-Host "✅ All done! You can now safely swap your mini PC." -ForegroundColor $colors.Success
